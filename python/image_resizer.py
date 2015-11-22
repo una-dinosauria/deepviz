@@ -44,3 +44,6 @@ def resize_dir( imdir ):
 			print( imdir + fname )
 			im = crop_and_resize( imdir + fname );
 			im.save( imdir + fname );
+
+# Run on facespics
+resize_dir('../imgs/facespics/');
