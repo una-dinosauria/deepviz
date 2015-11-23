@@ -37,7 +37,12 @@ var context = chart.node().getContext("2d");
 
 var image = new Image();
 image.onload = function() {
-	context.drawImage( image, 0, 0, imageWidth, imageHeight, 0, 0, imageWidth, imageHeight)
+	//context.drawImage( image, 0, 0 );
+	context.drawImage( image, 0, 0, imageWidth, imageHeight, 0, 0, imageWidth, imageHeight);
+
+	//context.strokeStyle="#000000"
+	context.lineWidth=5;
+	context.strokeRect(0, 0, imageWidth, imageHeight);
 };
 image.src = 'imgs/facespics/bigtile.jpg';
 
