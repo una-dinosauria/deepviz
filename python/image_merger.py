@@ -41,7 +41,9 @@ imcounter = 0;
 for f in fnames:
 	# Skip if not an image
 	if not f.endswith('png') and not f.endswith('jpg'):
-		continue
+	    continue
+        if f == "bigtile.jpg":
+            continue
 
 	# Read the image
 	im = Image.open( dirname + f );
@@ -55,10 +57,8 @@ for f in fnames:
         print( 'Working on image {0}: {1}, size {2}'.format( imcounter, f, im.shape ) );
         print( 'The row is {0} and the column is {1}'.format( imrow, imcol ));
 
-        bigtile[ imrow*imsize:(imrow+1)*imsize, imsize*imcol:imsize*(imcol+1), 1:3 ] = im[:,:,1:3];
+        bigtile[ imrow*imsize:(imrow+1)*imsize, imsize*imcol:imsize*(imcol+1), 0:3 ] = im[:,:,0:3];
 	imcounter = imcounter + 1;
-	#if imcounter == 11:
-	#	break;
 
 # Keep only the images that we actually read
 bigtile = bigtile[:, 1:(imcounter-1)*imsize, :];
