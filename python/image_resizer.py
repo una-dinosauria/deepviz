@@ -4,7 +4,6 @@ from PIL import Image
 import os, sys, glob
 
 # Final size of the image
-imsize = (224, 224)
 
 # Return a central crop of an image
 def central_crop( im, w, h ):
@@ -20,7 +19,7 @@ def central_crop( im, w, h ):
 
 
 # Crops and resize an image
-def crop_and_resize( fname ):
+def crop_and_resize( fname, imsize ):
 	try:
 		im = Image.open( fname )
 		w, h = im.size
@@ -36,14 +35,15 @@ def crop_and_resize( fname ):
 
 
 # Resizes all the images in a directory
-def resize_dir( imdir ):
+def resize_dir( imdir, imsize ):
 
 	# TODO hardcoded a jpg ending for images
 	for fname in os.listdir( imdir ):
 		if fname.endswith(".jpg") or fname.endswith(".png"):
 			print( imdir + fname )
-			im = crop_and_resize( imdir + fname );
+			im = crop_and_resize( imdir + fname, imsize );
 			im.save( imdir + fname );
 
 # Run on facespics
-resize_dir('../imgs/facespics/');
+#resize_dir('../imgs/facespics_256/', (256, 256));
+resize_dir('../imgs/facespics_128/', (128, 128));
