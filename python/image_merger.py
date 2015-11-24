@@ -27,10 +27,14 @@ for f in fnames:
 
 print( 'There are {0} images in total'.format( totalimgs ) );
 
+# === Determine the size of the big image tile
 
-# === See how many rows we are going to need
-per_row = maxsize // imsize;                # How many imgs we can fit per row
-nrows   = np.ceil( totalimgs / per_row );   # How many rows we need
+# The closest squre number
+closest_sqroot = np.ceil( np.sqrt( totalimgs ) );
+closest_square = closest_sqroot ** 2;
+
+per_row = closest_sqroot;                # How many imgs we can fit per row
+nrows   = closest_sqroot;   # How many rows we need
 
 print( 'There are {0} images per row, and {1} rows'.format(per_row, nrows ));
 
