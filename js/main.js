@@ -61,27 +61,19 @@ function render() {
         (imcounter%28)*32, Math.floor(imcounter/28)*32, 32, 32 );
 
       /*** Draw with a single resize ***/
-      //**
-      // context.drawImage( image,
-      //   j*imsize, i*imsize,
-      //   imsize, imsize,
-      //   (imcounter%28)*32, Math.floor(imcounter/28)*32,
-      //   32, 32 );
-      //**/
+      x1 = xFisheye( (imcounter%28)*32 );
+      x2 = xFisheye( (imcounter%28)*32 + 32) - x1;
+      y1 = yFisheye(Math.floor(imcounter/28)*32);
+      y2 = yFisheye(Math.floor(imcounter/28)*32 + 32) - y1;
 
       context.drawImage( image,
         j*imsize, i*imsize,
         imsize, imsize,
-        xFisheye( (imcounter%28)*32 ), yFisheye(Math.floor(imcounter/28)*32),
-        xFisheye( (imcounter%28)*32 + 32) - xFisheye((imcounter%28)*32),
-        yFisheye(Math.floor(imcounter/28)*32 + 32) - yFisheye(Math.floor(imcounter/28)*32));
+        x1, y1, x2, y2);
 
 			// Draw a rectangle around each image
 			context.lineWidth=1;
-      context.strokeRect(
-				xFisheye((imcounter%28)*32), yFisheye(Math.floor(imcounter/28)*32),
-        xFisheye( (imcounter%28)*32 + 32) - xFisheye((imcounter%28)*32),
-        yFisheye(Math.floor(imcounter/28)*32 + 32) - yFisheye(Math.floor(imcounter/28)*32));
+      context.strokeRect(x1, y1, x2, y2);
 
 			imcounter++;
 		}
@@ -90,28 +82,6 @@ function render() {
   s1.Stop();
   console.log('Rendering took ' + s1.ElapsedMilliseconds +  'ms' )
 }
-
-// function render() {
-//   // Draw the columns
-//   for( i=0; i<=28; i++) {
-//     context.beginPath();
-//     context.moveTo(xFisheye(i*32), 0);
-//     context.lineTo(xFisheye(i*32), height);
-//     context.stroke();
-//     console.log("rendering at " + xFisheye(i*32))
-//   }
-//
-//   // Draw the rows
-//   for( i=0; i<=28; i++) {
-//     context.beginPath();
-//     context.moveTo(0,     yFisheye(i*32));
-//     context.lineTo(width, yFisheye(i*32));
-//     context.stroke();
-//     console.log("rendering at " + yFisheye(i*32))
-//   }
-// }
-
-
 
 image.onload = function() {
   render();
