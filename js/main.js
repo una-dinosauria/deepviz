@@ -1,29 +1,33 @@
 
-var pica = require('pica')
+// var pica = require('pica')
 
 // TODO this should somehow come from an external file
 // Global variables
+var imsize = 128; // Size of images in the tile
+
 var width  			 = 28*32,
 		height 			 = 28*32,
 		imageWidth 	 = 32,
 		imageHeight  = 32,
-		total_images = 837,   // total images in the big tile
-		can_fit      = 28*28, // total number of images we can fit in the canvas
-		per_row      = Math.floor(65500/128),   // images per row in the big tile
-		nrows        = 4;     // total number of rows in the big tile
+    xSteps       = d3.range(0, width, 32),
+    ySteps       = d3.range(0, height, 32),
+		total_images = 836,   // total images in the big tile
+		per_row      = Math.ceil(Math.sqrt( 836 )),   // images per row in the big tile
+		nrows        = Math.ceil(Math.sqrt( 836 ));     // total number of rows in the big tile
 
 var base = d3.select("#vis");
 
 // Add an external canvas for cascaded resizing
 var oc = document.createElement('canvas'),
     octx = oc.getContext('2d');
-  oc.width  = 128;
-  oc.height = 128;
+  oc.width  = imsize;
+  oc.height = imsize;
 
 // Add a canvas
 var chart = base.append("canvas")
   .attr( "width", width)
-  .attr("height", height);
+  .attr("height", height)
+  .attr("id","canvas");
 
 var context = chart.node().getContext("2d");
 
@@ -31,9 +35,12 @@ var context = chart.node().getContext("2d");
 var image = new Image();
 
 // Draw images with size of 32 x 32. We want 28x28 images on each side.
-image.onload = function() {
+function render() {
+  var s1 = new StopWatch();
+  s1.Start();
 
-	imcounter = 0;
+  imcounter = 0;
+  //context.clearRect(0,0,32*28,32*28);
 
 	for ( i=0; i<nrows; i++ ) {
 		for ( j=0; j<per_row; j++ ) {
@@ -41,14 +48,12 @@ image.onload = function() {
 			if (imcounter-1 > total_images) {break;}
 
       /*** Draw with multiple resizes ***/
-      // Load into external canvas -- down to 128x128
+      /**
+      // Load into external canvas -- down to 64x64
       octx.drawImage(image,
-        j*128, i*128, 128, 128,
-        0,0, 128, 128);
-
-      // Down to 64x64
-      octx.drawImage( oc, 0, 0, 64, 64);
-			//octx.drawImage( oc, 0, 0, 128, 128, 0, 0,  64, 64);
+        j*imsize, i*imsize, // Read at this position in the tile
+        imsize, imsize, // Read this much from the tile
+        0,0, 64, 64);
 
       // Draw in the display canvas -- down to 32x32
       context.drawImage( oc,
@@ -56,85 +61,89 @@ image.onload = function() {
         (imcounter%28)*32, Math.floor(imcounter/28)*32, 32, 32 );
 
       /*** Draw with a single resize ***/
+      //**
       // context.drawImage( image,
-      //   j*128, i*128, 128, 128,
-      //   (imcounter%28)*32, Math.floor(imcounter/28)*32, 32, 32 );
+      //   j*imsize, i*imsize,
+      //   imsize, imsize,
+      //   (imcounter%28)*32, Math.floor(imcounter/28)*32,
+      //   32, 32 );
+      //**/
+
+      context.drawImage( image,
+        j*imsize, i*imsize,
+        imsize, imsize,
+        xFisheye( (imcounter%28)*32 ), yFisheye(Math.floor(imcounter/28)*32),
+        xFisheye( (imcounter%28)*32 + 32) - xFisheye((imcounter%28)*32),
+        yFisheye(Math.floor(imcounter/28)*32 + 32) - yFisheye(Math.floor(imcounter/28)*32));
 
 			// Draw a rectangle around each image
 			context.lineWidth=1;
       context.strokeRect(
-				(imcounter%28)*32, Math.floor(imcounter/28)*32, 32, 32);
-
+				xFisheye((imcounter%28)*32), yFisheye(Math.floor(imcounter/28)*32),
+        xFisheye( (imcounter%28)*32 + 32) - xFisheye((imcounter%28)*32),
+        yFisheye(Math.floor(imcounter/28)*32 + 32) - yFisheye(Math.floor(imcounter/28)*32));
 
 			imcounter++;
 		}
 	}
-}; // image.onload
+
+  s1.Stop();
+  console.log('Rendering took ' + s1.ElapsedMilliseconds +  'ms' )
+}
+
+// function render() {
+//   // Draw the columns
+//   for( i=0; i<=28; i++) {
+//     context.beginPath();
+//     context.moveTo(xFisheye(i*32), 0);
+//     context.lineTo(xFisheye(i*32), height);
+//     context.stroke();
+//     console.log("rendering at " + xFisheye(i*32))
+//   }
+//
+//   // Draw the rows
+//   for( i=0; i<=28; i++) {
+//     context.beginPath();
+//     context.moveTo(0,     yFisheye(i*32));
+//     context.lineTo(width, yFisheye(i*32));
+//     context.stroke();
+//     console.log("rendering at " + yFisheye(i*32))
+//   }
+// }
+
+
+
+image.onload = function() {
+  render();
+};
 image.src = 'imgs/facespics_128/bigtile.jpg';
 
+// Create fisheye distortions for x and y coordinates
+var xFisheye = d3.fisheye.scale(d3.scale.identity).domain([0, width]).focus(16*28);
+    yFisheye = d3.fisheye.scale(d3.scale.identity).domain([0, height]).focus(16*28);
 
-// // Create an in memory only element of type 'custom'
-// var detachedContainer = document.createElement("custom");
-//
-// // Create a d3 selection for the detached container. We won't
-// // actually be attaching it to the DOM.
-// var dataContainer = d3.select(detachedContainer);
-//
-// // Function to create our custom data containers
-// function drawCustom(data) {
-//   var scale = d3.scale.linear()
-//     .range([10, 390])
-//     .domain(d3.extent(data));
-//
-//   var dataBinding = dataContainer.selectAll("custom.rect")
-//     .data(data, function(d) { return d; });
-//
-//   dataBinding
-//     .attr("size", 8)
-//     .transition()
-//     .duration(1000)
-//     .attr("size", 15)
-//     .attr("fillStyle", "green");
-//
-//   dataBinding.enter()
-//       .append("custom")
-//       .classed("rect", true)
-//       .attr("x", scale)
-//       .attr("y", 100)
-//       .attr("size", 8)
-//       .attr("fillStyle", "red");
-//
-//   dataBinding.exit()
-//     .attr("size", 8)
-//     .transition()
-//     .duration(1000)
-//     .attr("size", 5)
-//     .attr("fillStyle", "lightgrey");
-// }
-//
-// // Function to render out to canvas our custom
-// // in memory nodes
-// function drawCanvas() {
-//
-//   // clear canvas
-//   context.fillStyle = "#fff";
-//   context.rect(0,0,chart.attr("width"),chart.attr("height"));
-//   context.fill();
-//
-//   // select our dummy nodes and draw the data to canvas.
-//   var elements = dataContainer.selectAll("custom.rect");
-//   elements.each(function(d) {
-//     var node = d3.select(this);
-//
-//     context.beginPath();
-//     context.fillStyle = node.attr("fillStyle");
-//     context.rect(node.attr("x"), node.attr("y"), node.attr("size"), node.attr("size"));
-//     context.fill();
-//     context.closePath();
-//
-//   })
-// }
-//
-// d3.timer(drawCanvas);
-// drawCustom([1,2,13,20,23]);
-// drawCustom([1,2,12,16,20]);
+function mousemove() {
+  var mouse = d3.mouse(this);
+  xFisheye.focus(mouse[0])
+  yFisheye.focus(mouse[1])
+  render();
+}
+// Add a mouse listener to the canvas
+d3.select("#canvas")
+  .on("mousemove", mousemove);
+
+// d3.timer(render);
+
+/*** Stopwatch "class." (from http://stackoverflow.com/a/1210765) ***/
+StopWatch = function() {
+    this.StartMilliseconds   = 0;
+    this.ElapsedMilliseconds = 0;
+}
+
+StopWatch.prototype.Start = function() {
+    this.StartMilliseconds = new Date().getTime();
+}
+
+StopWatch.prototype.Stop = function() {
+    this.ElapsedMilliseconds = new Date().getTime() - this.StartMilliseconds;
+}
