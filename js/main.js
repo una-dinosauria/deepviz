@@ -62,18 +62,46 @@ function render() {
 
       /*** Draw with a single resize ***/
       x1 = xFisheye( (imcounter%28)*32 );
-      x2 = xFisheye( (imcounter%28)*32 + 32) - x1;
+      x2 = xFisheye( (imcounter%28)*32 + 32);
       y1 = yFisheye(Math.floor(imcounter/28)*32);
-      y2 = yFisheye(Math.floor(imcounter/28)*32 + 32) - y1;
+      y2 = yFisheye(Math.floor(imcounter/28)*32 + 32);
 
-      context.drawImage( image,
-        j*imsize, i*imsize,
-        imsize, imsize,
-        x1, y1, x2, y2);
+
+      if( (x2-x1) > (y2-y1) ) {
+
+        r = (y2-y1) / (x2-x1); // The difference ratio
+
+        imcenter  = i*imsize + (imsize/2);
+        read_from = imcenter - (r/2)*imsize;
+        read_to   = imcenter + (r/2)*imsize;
+
+        context.drawImage( image,
+          j*imsize, read_from,
+          imsize,   read_to - read_from,
+          x1, y1, x2-x1, y2-y1 );
+
+      } else {
+
+        r = (x2-x1) / (y2-y1); // The difference ratio
+
+        imcenter  = j*imsize + (imsize/2);
+        read_from = imcenter - (r/2)*imsize;
+        read_to   = imcenter + (r/2)*imsize;
+
+        context.drawImage( image,
+          read_from, i*imsize,
+          read_to - read_from,   imsize,
+          x1, y1, x2-x1, y2-y1 );
+      }
+
+      // context.drawImage( image,
+      //   j*imsize, i*imsize,
+      //   imsize, imsize,
+      //   x1, y1, x2-x1, y2-y1);
 
 			// Draw a rectangle around each image
 			context.lineWidth=1;
-      context.strokeRect(x1, y1, x2, y2);
+      context.strokeRect(x1, y1, x2-x1, y2-y1);
 
 			imcounter++;
 		}
@@ -89,8 +117,26 @@ image.onload = function() {
 image.src = 'imgs/facespics_128/bigtile.jpg';
 
 // Create fisheye distortions for x and y coordinates
-var xFisheye = d3.fisheye.scale(d3.scale.identity).domain([0, width]).focus(16*28);
-    yFisheye = d3.fisheye.scale(d3.scale.identity).domain([0, height]).focus(16*28);
+var fisheye_distortion = 2;
+$("#slide").on("input change", function() {
+  fisheye_distortion = this.value;
+  //xFisheye.focus( width / 2 );
+  //yFisheye.focus( height / 2 );
+  xFisheye.distortion( fisheye_distortion );
+  yFisheye.distortion( fisheye_distortion );
+  render();
+});
+
+var xFisheye = d3.fisheye
+  .scale(d3.scale.identity)
+  .domain([0, width])
+  .focus(16*28)
+  .distortion( fisheye_distortion );
+var yFisheye = d3.fisheye
+  .scale(d3.scale.identity)
+  .domain([0, height])
+  .focus(16*28)
+  .distortion( fisheye_distortion );
 
 function mousemove() {
   var mouse = d3.mouse(this);
