@@ -47,3 +47,4 @@ def resize_dir( imdir, imsize ):
 # Run on facespics
 #resize_dir('../imgs/facespics_256/', (256, 256));
 resize_dir('../imgs/facespics_128/', (128, 128));
+#resize_dir('../imgs/facespics_64/', (64, 64));

@@ -40,7 +40,7 @@ function render() {
   s1.Start();
 
   imcounter = 0;
-  //context.clearRect(0,0,32*28,32*28);
+  context.clearRect(0,0,width, height);
 
 	for ( i=0; i<nrows; i++ ) {
 		for ( j=0; j<per_row; j++ ) {
