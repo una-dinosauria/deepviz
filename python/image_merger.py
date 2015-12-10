@@ -9,22 +9,16 @@ import os
 # single big picture out of them.
 
 # Each image must already have this size
-imsize = 128;
+imsize  = 64;
+imfname = 'images.csv';
 
 dirname = '../imgs/facespics_{0}/'.format( imsize );
-fnames = os.listdir( dirname );
 
-totalimgs = 0;
+with open( 'images.csv' ) as myfile:
+  fnames = myfile.readlines();
 
-# === Count all the images in the folder
-for f in fnames:
-        if not f.endswith('png') and not f.endswith('jpg'):
-                continue
-
-        if f == "bigtile.jpg":
-                continue
-        totalimgs = totalimgs + 1;
-
+# === Obtain the number of iamges
+totalimgs = len( fnames );
 print( 'There are {0} images in total'.format( totalimgs ) );
 
 # === Determine the size of the big image tile
@@ -44,26 +38,21 @@ imcounter = 0;
 
 # Loop through the images again
 for f in fnames:
-        # Skip if not an image
-        if not f.endswith('png') and not f.endswith('jpg'):
-            continue
-        if f == "bigtile.jpg":
-            continue
+  f = f.strip();
 
-        # Read the image
-        im = Image.open( dirname + f );
-        im = np.asarray( im, dtype="uint8" )
+  # Read the image
+  im = Image.open( dirname + f );
+  im = np.asarray( im, dtype="uint8" )
 
+  # What is the row of this image?
+  imrow = np.floor( imcounter / per_row )
+  imcol = (imcounter % per_row)
 
-        # What is the row of this image?
-        imrow = np.floor( imcounter / per_row )
-        imcol = (imcounter % per_row)
+  # print( 'Working on image {0}: {1}, size {2}'.format( imcounter, f, im.shape ) );
+  # print( 'The row is {0} and the column is {1}'.format( imrow, imcol ));
 
-        # print( 'Working on image {0}: {1}, size {2}'.format( imcounter, f, im.shape ) );
-        # print( 'The row is {0} and the column is {1}'.format( imrow, imcol ));
-
-        bigtile[ imrow*imsize:(imrow+1)*imsize, imsize*imcol:imsize*(imcol+1), 0:3 ] = im[:,:,0:3];
-        imcounter = imcounter + 1;
+  bigtile[ imrow*imsize:(imrow+1)*imsize, imsize*imcol:imsize*(imcol+1), 0:3 ] = im[:,:,0:3];
+  imcounter = imcounter + 1;
 
 # Keep only the images that we actually read
 bigtile = bigtile[:, 1:(imcounter-1)*imsize, :];

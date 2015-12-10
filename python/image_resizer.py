@@ -37,7 +37,6 @@ def crop_and_resize( fname, imsize ):
 # Resizes all the images in a directory
 def resize_dir( imdir, imsize ):
 
-	# TODO hardcoded a jpg ending for images
 	for fname in os.listdir( imdir ):
 		if fname.endswith(".jpg") or fname.endswith(".png"):
 			print( imdir + fname )
@@ -46,5 +45,5 @@ def resize_dir( imdir, imsize ):
 
 # Run on facespics
 #resize_dir('../imgs/facespics_256/', (256, 256));
-resize_dir('../imgs/facespics_128/', (128, 128));
+#resize_dir('../imgs/facespics_128/', (128, 128));
 #resize_dir('../imgs/facespics_64/', (64, 64));
