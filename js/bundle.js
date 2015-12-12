@@ -107,17 +107,30 @@ function gridify_tsne() {
 
 	for ( i=0; i<n_names; i++ ) {
 		// Make everything zero-based
-		//console.log( im_embedding[ im_names[i] ][0] );
 		im_embedding[ im_names[i] ][0] -= min_x;
 		im_embedding[ im_names[i] ][1] -= min_y;
-		//console.log( im_embedding[ im_names[i] ][0] );
 
 		// Scale
-		im_embedding[ im_names[i]][0] *= width / (2*max_x);
-		im_embedding[ im_names[i]][1] *= height / (2*max_y);
+		im_embedding[ im_names[i]][0] *= (width-16)  / (2*max_x);
+		im_embedding[ im_names[i]][1] *= (height-16) / (2*max_y);
 	}
 
-	// console.log( max_x, min_x, max_y, min_y );
+	// Define a grid
+	var grid = new Array( per_row );
+	for ( i=0; i<per_row; i++) {
+		grid[i] = new Array( nrows );
+	}
+
+
+
+	// Draw points in a grid all along the canvas
+	for ( i=0; i<nrows; i++ ) {
+		for ( j=0; j<per_row; j++ ) {
+			grid[i][j] = i*32, j*32;
+			context.strokeRect( j*32, i*32, 32, 32 );
+			context.strokeRect( (j*32)+16, (i*32)+16, 2, 2);
+		}
+	}
 
 	imcounter = 0;
 	for ( i=0; i<nrows; i++ ) {
@@ -159,9 +172,6 @@ function gridify_tsne() {
 	console.log('Rendering took ' + s1.ElapsedMilliseconds +  'ms' )
 };
 
-// image.onload = function() {
-// 	gridify_tsne();
-// };
 image.src = 'imgs/facespics_128/bigtile.jpg';
 
 // Create fisheye distortions for x and y coordinates
