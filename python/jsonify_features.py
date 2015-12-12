@@ -32,6 +32,19 @@ def jsonify( h5dataset, saveto ):
     f.write( json.dumps( features_dict ) );
 
 
-# Jsonify features
+# === Jsonify image names
+with open('images.csv') as f:
+  data = f.readlines();
+
+map( (lambda x : x.strip), data );
+
+names = {};
+names['names'] =  data;
+with open('names.json', 'w') as f:
+  f.write( json.dumps( names ));
+
+# === Jsonify features
 jsonify( 'features', 'features.json' );
 jsonify( 'embedding', 'embedding.json' );
+
+
