@@ -32,6 +32,8 @@ var im_names;     // image names. Keys in im_features and im_embedding
 var im_features;  // 4096-dimensional descriptor of each image.
 var im_embedding; // 2-dimensional t-sne embedding of each image
 
+
+// Load all the things
 $(document).ready(function() {
 	// Load the image names
 	var im_names_response = "";
@@ -115,31 +117,83 @@ function gridify_tsne() {
 	}
 
 	// Define points over a grid
-	var grid = new Array( per_row );
+	var grid  = new Array( per_row );
+	var taken = new Array( per_row );
 	for ( i=0; i<per_row; i++) {
-		grid[i] = new Array( nrows );
+		grid[i]  = new Array( nrows );
+		taken[i] = new Array( nrows );
 	}
-
-
 
 	// Draw points in a grid all along the canvas
 	for ( i=0; i<nrows; i++ ) {
 		for ( j=0; j<per_row; j++ ) {
-			grid[i][j] = i*32, j*32;
+			grid[i][j] = [(i*32)+16, (j*32)+16];
+			taken[i][j] = false;
 			context.strokeRect( j*32, i*32, 32, 32 );
 			context.strokeRect( (j*32)+16, (i*32)+16, 2, 2);
 		}
 	}
 
+	console.log( taken )
+
+	// Restructure the embedding so that it is gridified
 	imcounter = 0;
+	outer1:
 	for ( i=0; i<nrows; i++ ) {
 		for ( j=0; j<per_row; j++ ) {
 
-			if (imcounter-1 > total_images) {break;}
+			if (imcounter >= total_images) {break outer1;}
 
+			// Current embedding
 			x = im_embedding[ im_names[imcounter] ][0] - 0;
 			y = im_embedding[ im_names[imcounter] ][1] + 0;
+			//console.log( x, y, grid[i][j][0], grid[i][j][1] );
 
+
+			// Look for the nearest neighbour in the grid.
+
+			nni = 0; nnj = 0; mindist = Number.MAX_VALUE;
+			//outer3:
+			for ( ii=0; ii<nrows; ii++ ) {
+				for ( jj=0; jj<per_row; jj++ ) {
+
+					if (taken[ii][jj]) {break}
+
+					dist =  Math.pow(x - grid[ii][jj][0], 2);
+					dist += Math.pow(y - grid[ii][jj][1], 2);
+
+					console.log( dist, mindist,  dist < mindist );
+					//console.log( !taken[ii][jj] );
+					if ( (dist < mindist) && !(taken[ii][jj]) ) {
+						mindist = dist;
+						nni = ii;
+						nnj = jj;
+					}
+				}
+			}
+
+			// Assign the nearest neighbour
+
+			// Mark this entry as taken
+			console.log( nni, nnj, dist );
+			im_embedding[ im_names[imcounter] ] = grid[nni][nnj];
+			taken[ nni ][ nnj ] = true;
+
+
+			console.log( imcounter );
+			imcounter++;
+		}
+	}
+
+	imcounter = 0;
+	outer2:
+	for ( i=0; i<nrows; i++ ) {
+		for ( j=0; j<per_row; j++ ) {
+
+			if (imcounter >= total_images) {break outer2;}
+
+			x = im_embedding[ im_names[imcounter] ][0] - 16;
+			y = im_embedding[ im_names[imcounter] ][1] - 16;
 
 			/*** Draw with multiple resizes ***/
 			// Load into external canvas -- down to 64x64
@@ -166,7 +220,7 @@ function gridify_tsne() {
 		}
 	}
 
-	console.log( im_embedding )
+	console.log( imcounter )
 	s1.Stop();
 	console.log('Rendering took ' + s1.ElapsedMilliseconds +  'ms' )
 };
