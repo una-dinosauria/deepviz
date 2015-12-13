@@ -1,4 +1,5 @@
 
+var createKDTree = require("static-kdtree")
 
 // Global variables
 var imsize = 128; // Size of images in the tile
@@ -79,6 +80,9 @@ $(document).ready(function() {
 // We will load the big tile here
 var image = new Image();
 
+var assignedTree;
+var assigned = new Array( total_images );
+
 // Draw images with size of 32 x 32. We want 28x28 images on each side.
 function gridify_tsne() {
 	var s1 = new StopWatch();
@@ -91,7 +95,6 @@ function gridify_tsne() {
 	var min_x =  Number.MAX_VALUE;
 	var max_y = -Number.MAX_VALUE;
 	var min_y =  Number.MAX_VALUE;
-	console.log( im_names.length );
 
 	var n_names = im_names.length;
 	for ( i=0; i<n_names; i++ ) {
@@ -117,73 +120,111 @@ function gridify_tsne() {
 	}
 
 	// Define points over a grid
-	var grid  = new Array( per_row );
-	var taken = new Array( per_row );
+	var grid  = new Array( per_row * nrows );
+	var taken = new Array( per_row * nrows );
+
+	grididx = 0;
 	for ( i=0; i<per_row; i++) {
-		grid[i]  = new Array( nrows );
-		taken[i] = new Array( nrows );
-	}
-
-	// Draw points in a grid all along the canvas
-	for ( i=0; i<nrows; i++ ) {
-		for ( j=0; j<per_row; j++ ) {
-			grid[i][j] = [(i*32)+16, (j*32)+16];
-			taken[i][j] = false;
-			context.strokeRect( j*32, i*32, 32, 32 );
-			context.strokeRect( (j*32)+16, (i*32)+16, 2, 2);
+		for ( j=0; j<nrows; j++) {
+			 grid[ grididx ] = [(i*32)+16, (j*32)+16]
+			taken[ grididx ] = false;
+			 grididx++
 		}
 	}
+	var gridTree = createKDTree( grid );
 
-	console.log( taken )
+	// Make clones of grid and taken
+	var subgrid  =  grid.slice(0);
+	var subtaken = taken.slice(0);
 
-	// Restructure the embedding so that it is gridified
-	imcounter = 0;
-	outer1:
-	for ( i=0; i<nrows; i++ ) {
-		for ( j=0; j<per_row; j++ ) {
+	// Keep track of which images have been assigned to a spot on the grid
+	all_assigned = false;
+	for (i=0; i<total_images; i++) { assigned[i] = false; };
 
-			if (imcounter >= total_images) {break outer1;}
+	while ( !all_assigned ) { // While there are points left to assign...
 
-			// Current embedding
-			x = im_embedding[ im_names[imcounter] ][0] - 0;
-			y = im_embedding[ im_names[imcounter] ][1] + 0;
-			//console.log( x, y, grid[i][j][0], grid[i][j][1] );
+		// Create a kd-tree for fast nn
+		var tree = createKDTree( subgrid )
 
+		// Restructure the embedding so that it is gridified
+		imcounter = 0;
+		k = 10;
 
-			// Look for the nearest neighbour in the grid.
+		outer1:
+		for ( i=0; i<nrows; i++ ) {
+			for ( j=0; j<per_row; j++ ) {
 
-			nni = 0; nnj = 0; mindist = Number.MAX_VALUE;
-			//outer3:
-			for ( ii=0; ii<nrows; ii++ ) {
-				for ( jj=0; jj<per_row; jj++ ) {
+				if (imcounter >= total_images) {break outer1;}
+				if (assigned[ imcounter ] ){ imcounter++; continue; }
 
-					if (taken[ii][jj]) {break}
+				// Current embedding
+				x = im_embedding[ im_names[imcounter] ][0];
+				y = im_embedding[ im_names[imcounter] ][1];
 
-					dist =  Math.pow(x - grid[ii][jj][0], 2);
-					dist += Math.pow(y - grid[ii][jj][1], 2);
+				// Look for the 10 nearest neghbours in the grid
+				nns = tree.knn( [x,y], k );
+				//console.log( nns )
 
-					console.log( dist, mindist,  dist < mindist );
-					//console.log( !taken[ii][jj] );
-					if ( (dist < mindist) && !(taken[ii][jj]) ) {
-						mindist = dist;
-						nni = ii;
-						nnj = jj;
-					}
+				// Traverse the nns and stick to the first one that is free
+				for ( ii=0; ii<k; ii++ ) {
+
+					// If this point has already been taken, move on.
+					if ( subtaken[ nns[ii] ] ) { continue; }
+
+					// Else we have to tag it in the grid structure. Get the actual coordinates there.
+
+					// Assign the points for the embedding
+					im_embedding[ im_names[imcounter] ] = subgrid[ nns[ii] ];
+
+					// Find the index in the original grid
+					idx = gridTree.nn( subgrid[nns[ii]] );
+
+					taken[ idx ]        = true; // Mark it as taken globally
+					subtaken[ nns[ii] ] = true; // Mark it as taken locally
+
+					assigned[ imcounter ] = true; // Mark the image as assigned
+					//console.log( 'image ' + imcounter + ' assigned');
+					break;
 				}
+
+				imcounter++;
+
+			} // for j<per_row
+		} // for i<nrows
+
+		n_unassigned = 0;
+		for (i=0; i<total_images; i++) { if( !assigned[i] ){ n_unassigned++ }}
+
+		all_assigned = n_unassigned == 0;
+		console.log( n_unassigned + ' unassigned pics :(' );
+
+		// Make a subgrid with the points in the grid that have not been assigned
+		subgrid = grid.slice(0);
+		for (i=per_row * nrows; i>=0; i--) {
+			if ( taken[i] ) {
+				subgrid.splice(i, 1);
 			}
-
-			// Assign the nearest neighbour
-
-			// Mark this entry as taken
-			console.log( nni, nnj, dist );
-			im_embedding[ im_names[imcounter] ] = grid[nni][nnj];
-			taken[ nni ][ nnj ] = true;
+		}
+		subtaken = new Array( n_unassigned );
+		for (i=0; i<n_unassigned; i++) { subtaken[i]=false; }
 
 
-			console.log( imcounter );
-			imcounter++;
+	} // while !all_assigned
+
+	// Count how many images were assigned\
+	assigned_points = new Array( total_images );
+	assigned_names  = new Array( total_images );
+	for (i=0; i<total_images; i++) {
+		if (assigned[i]) {
+			assigned_points[i] = im_embedding[ im_names[i]];
+			assigned_names[i]  = im_names[i];
+		} else {
+			assigned_points[i] = [Number.MAX_VALUE, Number.MAX_VALUE];
 		}
 	}
+
+	// Make a tree with the assigned points
+	assignedTree = createKDTree( assigned_points );
 
 	imcounter = 0;
 	outer2:
@@ -195,47 +236,44 @@ function gridify_tsne() {
 			x = im_embedding[ im_names[imcounter] ][0] - 16;
 			y = im_embedding[ im_names[imcounter] ][1] - 16;
 
-			/*** Draw with multiple resizes ***/
-			// Load into external canvas -- down to 64x64
-			octx.drawImage(image,
-			j*imsize, i*imsize, // Read at this position in the tile
-			imsize, imsize, // Read this much from the tile
-			0,0, 64, 64);
-
-			// Draw in the display canvas -- down to 32x32
-			context.drawImage( oc,
-			0, 0, 64, 64,
-			x, y, 32, 32);
-
-			/*** Draw with a single resize
-			context.drawImage( image,
+			if( assigned[imcounter] ){
+				/*** Draw with multiple resizes ***/
+				// Load into external canvas -- down to 64x64
+				octx.drawImage(image,
 				j*imsize, i*imsize, // Read at this position in the tile
-				imsize, imsize,     // Read this much from the tile
-				x, y, 32, 32); **/
+				imsize, imsize, // Read this much from the tile
+				0,0, 64, 64);
 
-			context.lineWidth=1;
-			context.strokeRect(x, y, 32, 32);
+				// Draw in the display canvas -- down to 32x32
+				context.drawImage( oc,
+				0, 0, 64, 64,
+				x, y, 32, 32);
+
+				context.strokeStyle='#000000';
+				context.strokeRect(x, y, 32, 32);
+				context.strokeRect(x, y, 32, 32);
+			} else {
+				context.strokeStyle='#ff0000';
+			}
 
 			imcounter++;
 		}
 	}
 
-	console.log( imcounter )
 	s1.Stop();
 	console.log('Rendering took ' + s1.ElapsedMilliseconds +  'ms' )
 };
 
 image.src = 'imgs/facespics_128/bigtile.jpg';
 
-// Create fisheye distortions for x and y coordinates
-function mousemove() {
-	var mouse = d3.mouse(this);
-	//render();
-}
-
 // Add a mouse listener to the canvas
-d3.select("#canvas")
-	.on("mousemove", mousemove);
+d3.select("#canvas").on("mousedown", function mouseclick() {
+	var mouse = d3.mouse(this);
+	// What is the image that we are hovering on?
+	nn = assignedTree.nn( mouse );
+	console.log( assigned_points[nn], assigned_names[nn] );
+	//d3.event.stopPropagation(this);
+});
 
 // ===  Stopwatch class (http://stackoverflow.com/a/1210765) === /
 StopWatch = function() {
