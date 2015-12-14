@@ -1,13 +1,14 @@
 
 import json
 import h5py
+import numpy as np
 
 ######################
 ## jsonify features ##
 ######################
 
 # Read the features
-def jsonify( h5dataset, saveto ):
+def jsonify( h5dataset, saveto, normalize=False ):
 
   h5f      = h5py.File('vgg_features.h5', 'r')
   features = h5f[ h5dataset ][:]
@@ -24,7 +25,12 @@ def jsonify( h5dataset, saveto ):
   for fname in data:
     fname = fname.strip()
 
-    features_dict[ fname ] = features[:, i].tolist();
+    if normalize:
+      f = features[:,i];
+      f = np.divide( f , np.linalg.norm(f, 2));
+      features_dict[ fname ] = f.tolist();
+    else:
+      features_dict[ fname ] = features[:, i].tolist();
     i = i+1;
 
   # Save in a json format
@@ -44,7 +50,7 @@ with open('names.json', 'w') as f:
   f.write( json.dumps( names ));
 
 # === Jsonify features
-jsonify( 'features', 'features.json' );
+jsonify( 'features', 'features.json', True );
 jsonify( 'embedding', 'embedding.json' );
 
 
