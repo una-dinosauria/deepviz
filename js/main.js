@@ -324,15 +324,16 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 	// === CREATE A NEW DIV AND PUT THE IMAGE THERE
 	var div = d3.select("#queries")
 		.append("div")
-		//.attr('style', 'border: solid');
+		.attr('style', 'float:left');
 
 	// Add the image
 	div.append('img')
 		.attr('src','imgs/facespics_128/' + im_name)
-		.attr('style', 'border:solid;')
+		.attr('style', 'border:solid; float:left')
 
 	// === NOW ACTUALLY DO THE PLOT
 	var margin = {top: 2, right: 5, bottom: 2, left: 30},
+	//var margin = {top: 0, right: 0, bottom: 0, left: 30},
 		p_width = 780 - imsize - margin.left - margin.right,
 		p_height = 64 - margin.top - margin.bottom;
 
@@ -354,6 +355,7 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 		.append("svg")
 		.attr("width", p_width + margin.left + margin.right)
 		.attr("height",p_height + margin.top + margin.bottom)
+		.attr("style", "float: right")
 		.append("g")
 		.attr("transform",
 			  "translate(" + margin.left + "," + margin.top + ")");
@@ -392,6 +394,7 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 
 	q_idx++;
 
+	// Add the brush to the global observer
 	g_brushes.push( brush );
 
 	svg.append("g")
@@ -400,6 +403,15 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 		.call( brush )
 		.selectAll('rect')
 		.attr('height', p_height);
+
+	// NOW ADD THE CANVAS THAT EXPLORES THE QUERY
+	var qcanvas = div
+		.append("canvas")
+		.attr("width", p_width )
+		.attr("height", p_height )
+		.attr("style", "border: solid; float:right")
+
+
 });
 
 // Keep a list of all the brushes here
@@ -413,7 +425,7 @@ function brushed( idx ) {
   g_extent = g_brushes[ idx ].extent();
   g_extent = g_extent.map( Math.floor  );
 
-  // Prevent brush resizing -- ugly, still has handlers.
+  // Prevent brush resizing -- TODO ugly, still has handlers.
   g_extent[1] = g_extent[0] + g_domain;
 
   console.log( g_extent )
