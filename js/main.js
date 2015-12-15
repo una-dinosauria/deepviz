@@ -382,12 +382,27 @@ function highlighter( nearest ) {
 }
 
 // === QUERY FUNCTION. GET DISTANCES. SORT. CREATE PLOT ===
-d3.select("#canvas").on("mousedown", function mouseclick() {
-	var mouse = d3.mouse(this);
+d3.select("#canvas").on("mousedown", function() {
+
+	nn = assignedTree.nn( d3.mouse(this ) );
+	run_query( nn );
+});
+
+g_queries = [];
+
+function run_query( nn ) {
+
+	for (var i=0; i<g_queries.length; i++) {
+		if ( g_queries[i] == nn ) {
+			console.log('already queried' );
+			return;
+		}
+	};
+
+	g_queries.push( nn );
 
 	// === COMPUTE THE RANKING ===
 	// What is the image that we are hovering on?
-	nn      = assignedTree.nn( mouse );
 	im_name = assigned_names[ nn ];
 
 	// Get the feature of the image
@@ -547,7 +562,9 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 		var mouse = d3.mouse( this );
 		var imidx = g_extent[0] + Math.floor( mouse[0] / 64 );
 		//console.log( imidx );
-		console.log( imidx, im_names[ g_similarities[ local_idx-1 ][ imidx ]] );
+		//console.log( imidx, im_names[ g_similarities[ local_idx-1 ][ imidx ]] );
+		run_query( g_similarities[ local_idx-1 ][ imidx ] );
+
 	});
 
 	// DRAW THE RETRIEVED IMAGES
@@ -555,7 +572,7 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 	g_contexts.push( qcontext );
 
 	redraw_queries( local_idx );
-});
+};
 
 // Keep a list of all the brushes here
 

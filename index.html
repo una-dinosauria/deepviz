@@ -5,18 +5,58 @@
 <head>
 <title>DeepViz</title>
 </head>
+<style>
+path {
+	/* stroke: steelblue; */
+	stroke-width: 2;
+	fill: none;
+}
+
+.axis path,
+.axis line {
+	fill: none;
+	stroke: grey;
+	stroke-width: 1;
+	shape-rendering: crispEdges;
+}
+.brush .extent {
+	stroke: #fff;
+	fill-opacity: .125;
+	shape-rendering: crispEdges;
+}
+
+/* Nice border around images */
+img {
+	outline: 1px solid black;
+	outline-offset: -1px;
+}
+
+/* Disable brush resize */
+g.brush>.resize {
+	display: none;
+}
+
+/* x for closing */
+.close {
+	float:right;
+	display:inline-block;
+	padding:2px 5px;
+	background:#ccc;
+}
+
+/* circle for focus */
+.focus circle {
+  fill: none;
+  stroke: steelblue;
+}
+</style>
 <body>
 
 <header style="height: 50px;"></header>
-
-<div class="container">
-	<div style="width: 1196px; height: 960px; border:solid;">
-		<div id="vis" style="width: 960; height: 960px; float:left;"></div>
-		<div id="controls" style="width: 293px; height: 960px; float:right; border:solid blue">
-			<div id="slider">
-		    <input id="slide" type="range" id="rangeinput" min="0" max="8" step=".05" value="4"/>
-			</div>
-		</div>
+<div class="container" style="width:1845px; height:960px;">
+	<div id="vis"      style="width: 960px; height:960px; float:left;"></div>
+	<div id="queries" style="width: 850px; height:960px; float:right; overflow-y:scroll;">
+		<div id="summary" style="width: 800px; height: 131px; float:left"></div>
 	</div>
 </div>
 
@@ -26,6 +66,9 @@
 
 <!-- Optional theme -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+
+<!-- Load colorbrewer -->
+<script src=js/colorbrewer.js></script>
 
 <!-- Load D3JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js" charset="utf-8"></script>
