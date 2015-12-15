@@ -79,6 +79,72 @@ $(document).ready(function() {
 
 // We will load the big tile here
 var image = new Image();
+image.src = 'imgs/facespics_128/bigtile.jpg';
+
+var g_xs = [];
+var g_ys = [];
+var g_focus = [];
+var g_brushes  = [];
+var g_contexts = [];
+var g_similarities = []; // indices
+var g_similarities_values = []; //values
+var g_extent = [0, 10]
+var g_domain = g_extent[1] - g_extent[0];
+
+var q_idx = 0;
+q_idx ++;
+
+// CREATE THE SUMMARY PLOT AT THE TOP
+var g_margin = {top: 10, right: 10, bottom: 25, left: 30},
+	g_width  = 800 - g_margin.left - g_margin.right,
+	g_height = 130 - g_margin.top -  g_margin.bottom;
+
+var g_x = d3.scale.linear().range([0, g_width]);
+var g_y = d3.scale.linear().range([g_height, 0]);
+
+var xAxis = d3.svg.axis().scale(g_x).orient("bottom").ticks(10);
+var yAxis = d3.svg.axis().scale(g_y).orient("left").tickValues([0, 0.25, 0.5, 0.75]);
+
+var svg_summary = d3.select("#summary")
+	.append("svg")
+	.attr("width", g_width  + g_margin.left + g_margin.right)
+	.attr("height",g_height + g_margin.top  + g_margin.bottom)
+	.attr("style", "float: left")
+	.append("g")
+	.attr("transform",
+		  "translate(" + g_margin.left + "," + g_margin.top + ")");
+
+g_x.domain( [0, total_images-1] )
+g_y.domain( [0, 0.75] );
+
+g_valueline = d3.svg.line()
+	.x(function(d) { return g_x(d.idx); })
+	.y(function(d) { return g_y(d.distance); });
+
+svg_summary.append("g")
+	.attr("class", "x axis")
+	.attr("transform", "translate(0," + g_height + ")")
+	.call(xAxis);
+
+svg_summary.append("g")
+	.attr("class", "y axis")
+	.call(yAxis);
+
+// NOW ADD THE BRUSH
+var brush = d3.svg.brush()
+	.x( g_x )
+ 	.extent( g_extent )
+ 	.clamp( true )
+ 	.on( "brush", function(){ brushed(0)} ); // Pass local_idx by closure
+
+g_brushes.push( brush );
+
+svg_summary.append("g")
+	.attr('id', 'brush' + 0)
+	.attr('class', 'brush')
+	.call( brush )
+	.selectAll('rect')
+	.attr('height', g_height);
 
 var assignedTree;
 var assigned = new Array( total_images );
@@ -263,8 +329,6 @@ function gridify_tsne() {
 	console.log('Rendering took ' + s1.ElapsedMilliseconds +  'ms' )
 };
 
-image.src = 'imgs/facespics_128/bigtile.jpg';
-
 // Function that gets indices that sort an array.
 // Inspired from http://stackoverflow.com/a/3730579/1884420
 function sort_indices( the_array ) {
@@ -280,10 +344,42 @@ function sort_indices( the_array ) {
 	// Recover the indices
 	var indices = [];
 	for (var j in temp) {
-		indices.push( temp[j][1] );
+		indices.push( Number( temp[j][1] ) );
 	}
 	return indices;
 };
+
+// === OVER FUNCTION. FIND AND HIGHLIGHT IN QUERIES ===
+d3.select("#canvas").on("mousemove", function() {
+	var mouse = d3.mouse(this);
+	nn        = assignedTree.nn( mouse );
+	highlighter( nn );
+});
+
+// === Function that highlights in the plots ===
+function highlighter( nearest ) {
+
+	if (nearest == undefined) {
+		console.log( 'nearest is undefined :(' );
+		return;
+	}
+
+	for (var i=0; i<g_similarities.length; i++) {
+		ithsimilarities = g_similarities[i];
+		var nsimilarities = ithsimilarities.length;
+
+		// Find the image in the similarities
+		for (var j=0; j<nsimilarities; j++) {
+
+			if (nearest == ithsimilarities[j] ) {
+
+				g_focus[i].attr("transform", "translate(" + g_xs[i](j) + "," + g_ys[i]( g_similarities_values[i][j] ) + ")");
+				break
+			}
+			g_focus[i].attr("transform", "translate(" + -100 + "," + -100 + ")");
+		}
+	}
+}
 
 // === QUERY FUNCTION. GET DISTANCES. SORT. CREATE PLOT ===
 d3.select("#canvas").on("mousedown", function mouseclick() {
@@ -311,9 +407,13 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 	// Get the sorting indices
 	distances_srted_idx = sort_indices( distances );
 	distances_srtd      = distances.slice(0);
-	distances_srtd.sort( function(a,b){return b-a});
-	//distances_srtd.shift();
+	distances_srtd.sort( function(a,b){return b-a}); // sort max-to-min
 
+	distances_srted_idx.shift();
+	distances_srtd.shift();
+
+	g_similarities.push( distances_srted_idx );
+	g_similarities_values.push( distances_srtd );
 
 	var data = [];
 	for (var i=0; i<distances_srtd.length; i++ ) {
@@ -327,52 +427,70 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 		.attr('style', 'float:left');
 
 	// Add the image
-	div.append('img')
+
+	var img = div.append('img')
 		.attr('src','imgs/facespics_128/' + im_name)
-		.attr('style', 'border:solid; float:left')
+		.attr('style', 'border:solid; float:left');
+
+	var local_nn = nn;
+	console.log(nn, local_nn);
+	img.on("mousemove", function() {
+		highlighter(local_nn);
+	});
 
 	// === NOW ACTUALLY DO THE PLOT
-	var margin = {top: 2, right: 5, bottom: 2, left: 30},
-	//var margin = {top: 0, right: 0, bottom: 0, left: 30},
-		p_width = 780 - imsize - margin.left - margin.right,
-		p_height = 64 - margin.top - margin.bottom;
+	var margin = {top: 10, right: 5, bottom: 8, left: 35},
+	p_width = 790 - imsize - margin.left - margin.right,
+	p_height = 70 - margin.top - margin.bottom;
 
 	// Set the ranges
 	var x = d3.scale.linear().range([0, p_width]);
 	var y = d3.scale.linear().range([p_height, 0]);
 
 	// Define the axes
-	var xAxis = d3.svg.axis().scale(x).orient("bottom").ticks(100);
-	var yAxis = d3.svg.axis().scale(y).orient("left").tickValues([0.25, 0.5, 1]);
+	var xAxis = d3.svg.axis().scale(x).orient("bottom").ticks(10);
+	var yAxis = d3.svg.axis().scale(y).orient("left").tickValues([0, 0.25, 0.5, 0.75]);
 
 	// Define the line
 	var valueline = d3.svg.line()
 		.x(function(d) { return x(d.idx); })
 		.y(function(d) { return y(d.distance); });
 
+	// Add a cute little close button
+	div.append('span')
+		.attr("class", "close")
+		.html("x")
+
 	// Add the svg canvas
 	var svg = div
 		.append("svg")
 		.attr("width", p_width + margin.left + margin.right)
 		.attr("height",p_height + margin.top + margin.bottom)
-		.attr("style", "float: right")
+		.attr("style", "float: left")
 		.append("g")
 		.attr("transform",
-			  "translate(" + margin.left + "," + margin.top + ")");
+				"translate(" + margin.left + "," + margin.top + ")");
 
 	// Scale the range of the data
 	x.domain(d3.extent(data, function(d) { return d.idx; }));
-	//y.domain(d3.extent(data, function(d) { return d.distance; }));
-	y.domain( [0,0.5] );
+	y.domain( [0, 0.75] );
+
+	g_xs.push( x );
+	g_ys.push( y );
 
 	var local_idx = q_idx; // Remember the index of this query.
 
 	// Add the valueline path.
-	console.log( colorbrewer.Set2[6][local_idx] );
+	var color = colorbrewer.Dark2[6][local_idx-1];
 	svg.append("path")
 		.attr("class", "line")
-		.attr("style", 'stroke: ' + colorbrewer.Set2[8][local_idx])
+		.attr("style", 'stroke: ' + color)
 		.attr("d", valueline(data));
+
+	svg_summary.append("path")
+		.attr("class", "line")
+		.attr("style", 'stroke: ' + color)
+		.attr("d", g_valueline(data));
 
 	// Add the X Axis
 	svg.append("g")
@@ -385,11 +503,19 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 		.attr("class", "y axis")
 		.call(yAxis);
 
+	// ADD THE FOCUS
+	var focus = svg.append( "g" )
+		.attr("class","focus")
+		//.style("display","none");
+
+	focus.append("circle").attr("r",4.5);
+	g_focus.push( focus );
+
 	// NOW ADD THE BRUSH
 	var brush = d3.svg.brush()
 		.x( x )
 		.extent( g_extent )
-		.clamp( true )
+		//.clamp( true )
 		.on( "brush", function(){ brushed(local_idx)} ); // Pass local_idx by closure
 
 	q_idx++;
@@ -404,38 +530,80 @@ d3.select("#canvas").on("mousedown", function mouseclick() {
 		.selectAll('rect')
 		.attr('height', p_height);
 
-	// NOW ADD THE CANVAS THAT EXPLORES THE QUERY
+	// CREATE THE CANVAS THAT EXPLORES THE QUERY
 	var qcanvas = div
 		.append("canvas")
-		.attr("width", p_width )
-		.attr("height", p_height )
-		.attr("style", "border: solid; float:right")
+		.attr("width", p_width + 40 )
+		.attr("height", 64 )
+		.attr("style", "float:left bottom")
 
+	qcanvas.on("mousemove", function() {
+		// Highlight in plot
+		var mouse = d3.mouse( this );
+		highlighter( g_similarities[ local_idx-1 ][ g_extent[0] + Math.floor( mouse[0] / 64 ) ] );
+	});
 
+	qcanvas.on("click", function() {
+		var mouse = d3.mouse( this );
+		var imidx = g_extent[0] + Math.floor( mouse[0] / 64 );
+		//console.log( imidx );
+		console.log( imidx, im_names[ g_similarities[ local_idx-1 ][ imidx ]] );
+	});
+
+	// DRAW THE RETRIEVED IMAGES
+	qcontext   = qcanvas.node().getContext("2d");
+	g_contexts.push( qcontext );
+
+	redraw_queries( local_idx );
 });
 
 // Keep a list of all the brushes here
-q_idx = 0;
-g_brushes = [];
-g_extent = [0, 50]
-g_domain = g_extent[1] - g_extent[0];
 
 function brushed( idx ) {
-  // Get the extent of the brush that is being updated.
-  g_extent = g_brushes[ idx ].extent();
-  g_extent = g_extent.map( Math.floor  );
+	// Get the extent of the brush that is being updated.
+	g_extent = g_brushes[ idx ].extent();
+	g_extent = g_extent.map( Math.floor  );
 
-  // Prevent brush resizing -- TODO ugly, still has handlers.
-  g_extent[1] = g_extent[0] + g_domain;
+	// Prevent brush resizing -- TODO ugly, still has handlers.
+	g_extent[1] = g_extent[0] + g_domain;
 
-  console.log( g_extent )
+	// Update the position of the other brushes
+	for( var i=0; i<g_brushes.length; i++ ) {
+		g_brushes[i].extent( g_extent );
 
-  // Update all the rest.
-  for( var i=0; i<g_brushes.length; i++ ) {
-    g_brushes[i].extent( g_extent );
-	// Force them to repaint
-  	d3.select("#brush" + i).call( g_brushes[i] );
-  }
+		// Force them to repaint
+		d3.select("#brush" + i).call( g_brushes[i] );
+
+		if ( i != 0 ) {
+			redraw_queries( i );
+		}
+	}
+}
+
+function redraw_queries( i ) {
+
+	// for (var i=0; i<g_brushes.length; i++ ) {
+
+	// Update the images
+	qcontext = g_contexts[i-1];
+	imcounter = 0;
+
+	for (var j=g_extent[0]; j<=g_extent[1]; j++) {
+		// Row and column in the tile
+		idx = g_similarities[i-1][j];//distances_srted_idx[ i ];
+		imrow = Math.floor( idx / per_row );
+		imcol = ( idx % nrows );
+
+		// Paint the images
+		qcontext.drawImage( image,
+				imcol*imsize, imrow*imsize, // Start reading here
+				imsize, imsize, // Read this much
+				imcounter*64, 0, 64, 64 );
+
+		qcontext.strokeRect(imcounter*64, 0, 64, 64);
+
+		imcounter++
+	}
 }
 
 // ===  Stopwatch class (http://stackoverflow.com/a/1210765) === /
