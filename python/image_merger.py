@@ -9,7 +9,7 @@ import os
 # single big picture out of them.
 
 # Each image must already have this size
-imsize  = 128;
+imsize  = 64;
 imfname = 'images.csv';
 
 dirname = '../imgs/facespics_{0}/'.format( imsize );

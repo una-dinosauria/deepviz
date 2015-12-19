@@ -404,6 +404,7 @@ function run_query( nn ) {
 	// === COMPUTE THE RANKING ===
 	// What is the image that we are hovering on?
 	im_name = assigned_names[ nn ];
+	console.log( im_name );
 
 	// Get the feature of the image
 	feat =  im_features[im_name];
