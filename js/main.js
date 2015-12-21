@@ -37,7 +37,7 @@ var im_embedding; // 2-dimensional t-sne embedding of each image
 // Load all the things
 // Load the image names
 var im_names_response = "";
-$.ajax({
+var v1 = $.ajax({
 	type: "GET",
 	url: "js/data/names.json",
 	success: function( im_names_response ) {
@@ -54,7 +54,7 @@ $.ajax({
 
 // Load the image features
 var im_features_response = "";
-$.ajax({
+var v2 = $.ajax({
 	type: "GET",
 	url: "js/data/features.json",
 	success: function( im_features_response ) {
@@ -65,7 +65,7 @@ $.ajax({
 
 // Load the tsne embedding
 var im_embedding_response = "";
-$.ajax({
+var v3 = $.ajax({
 	type: "GET",
 	url: "js/data/embedding.json",
 	success: function( im_embedding_response ) {
@@ -77,7 +77,14 @@ $.ajax({
 
 // We will load the big tile here
 var image = new Image();
+image.onload = function() {
+	//console.log("done here!")
+	$.when( v1, v2, v3 ).done( function() {
+		//console.log( " done there" );
+		gridify_tsne();
+	})};
 image.src = 'imgs/facespics_128/bigtile.jpg';
+
 
 var g_xs = [];
 var g_ys = [];
@@ -146,11 +153,6 @@ svg_summary.append("g")
 
 var assignedTree;
 var assigned = new Array( total_images );
-
-$.when( image, im_names_response, im_features_response, im_embedding_response )
-	.done({ function() {
-		gridify_tsne();
-	}});
 
 
 // Draw images with size of 32 x 32. We want 28x28 images on each side.
