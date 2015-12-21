@@ -36,47 +36,45 @@ var im_embedding; // 2-dimensional t-sne embedding of each image
 
 
 // Load all the things
-$(document).ready(function() {
-	// Load the image names
-	var im_names_response = "";
-	$.ajax({
-		type: "GET",
-		url: "js/data/names.json",
-		success: function( im_names_response ) {
-			im_names = im_names_response.names;
+// Load the image names
+var im_names_response = "";
+$.ajax({
+	type: "GET",
+	url: "js/data/names.json",
+	success: function( im_names_response ) {
+		im_names = im_names_response.names;
 
-			// -- Trim the names. Removes the last \n
-			var n_names = im_names.length;
-			for ( i=0; i<n_names; i++) {
-				im_names[i] = $.trim( im_names[i] );
-			}
-		},
-		dataType: "json"
-	})
+		// -- Trim the names. Removes the last \n
+		var n_names = im_names.length;
+		for ( i=0; i<n_names; i++) {
+			im_names[i] = $.trim( im_names[i] );
+		}
+	},
+	dataType: "json"
+})
 
-	// Load the image features
-	var im_features_response = "";
-	$.ajax({
-		type: "GET",
-		url: "js/data/features.json",
-		success: function( im_features_response ) {
-			im_features = im_features_response;
-		},
-		dataType: "json"
-	})
+// Load the image features
+var im_features_response = "";
+$.ajax({
+	type: "GET",
+	url: "js/data/features.json",
+	success: function( im_features_response ) {
+		im_features = im_features_response;
+	},
+	dataType: "json"
+})
 
-	// Load the tsne embedding
-	var im_embedding_response = "";
-	$.ajax({
-		type: "GET",
-		url: "js/data/embedding.json",
-		success: function( im_embedding_response ) {
-			im_embedding = im_embedding_response;
-			gridify_tsne();
-		},
-		dataType: "json"
-	})
-});
+// Load the tsne embedding
+var im_embedding_response = "";
+$.ajax({
+	type: "GET",
+	url: "js/data/embedding.json",
+	success: function( im_embedding_response ) {
+		im_embedding = im_embedding_response;
+		//gridify_tsne();
+	},
+	dataType: "json"
+})
 
 // We will load the big tile here
 var image = new Image();
@@ -149,6 +147,12 @@ svg_summary.append("g")
 
 var assignedTree;
 var assigned = new Array( total_images );
+
+$.when( image, im_names_response, im_features_response, im_embedding_response )
+	.done({ function() {
+		gridify_tsne();
+	}});
+
 
 // Draw images with size of 32 x 32. We want 28x28 images on each side.
 function gridify_tsne() {
