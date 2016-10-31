@@ -6,6 +6,8 @@ I finished this project in December 2015 as the final project of the
 [CSPC 547 -- Infoviz](http://www.cs.ubc.ca/~tmm/courses/547-15/) course taught by
 [Tamara Munzner](https://www.cs.ubc.ca/~tmm/) at the [University of British Columbia](https://www.cs.ubc.ca/).
 
+I also wrote a paper-like [final report](http://www.cs.ubc.ca/~tmm/courses/547-15/projects/julieta/report.pdf) that explains the design choices behind this tool.
+
 ## Roadmap
 
 * `/python` contains code for data gathering (i.e., downloading images from twitter using 
